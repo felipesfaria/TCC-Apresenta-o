@@ -1,0 +1,8 @@
+int SequentialSvm::Classify(TrainingSet& ts, ValidationSet& vs, int vIndex)
+{
+	auto sum = 0.0;
+	for (auto i = 0; i < ts.height; ++i)
+		sum += ts.alpha[i] * ts.y[i] * gaussKernel(ts.x, i, vs.x, vIndex, ts.width, g);
+	auto value = sum - ts.b;
+	return SignOf(value);
+}
