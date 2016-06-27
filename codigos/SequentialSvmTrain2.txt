@@ -1,0 +1,11 @@
+  if (!isStochastic)
+    for (int i = 0; i < height; ++i)
+      alpha[i] = newAlpha[i];
+  avgDif /= height;
+  if (!isMultiStep)
+    updateStep(steps[0], oldDifs[0], avgDif);
+  avgStep = 0.0;
+  for (int i = 0; i < stepsSize; ++i)
+    avgStep += steps[i];
+  avgStep /= stepsSize;
+} while (abs(avgDif) > Precision && ++count < MaxIterations);

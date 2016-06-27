@@ -10,8 +10,11 @@
 % modify this file as you see fit and even to delete this copyright
 % notice. 
 
+
 \documentclass{beamer}
 \usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazilian]{babel}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{algorithmic}
@@ -136,8 +139,6 @@
 % and table of contents.
 \section{Introdução}
 
-\subsection{MVS - Máquina de Vetores Suporte}
-
 \begin{frame}{MVS}{Máquina de Vetores Suporte}
   \begin{itemize}
   \item {
@@ -148,8 +149,6 @@
   }
   \end{itemize}
 \end{frame}
-
-\subsection{Paralelização em GPU}
 
 \begin{frame}{Paralelização em GPU}
   \begin{itemize}
@@ -164,8 +163,6 @@
   }
   \end{itemize}
 \end{frame}
-
-\subsection{Estudos}
 
 \begin{frame}{Estudos}
   \begin{itemize}
@@ -184,8 +181,6 @@
   \end{itemize}
 \end{frame}
 
-\subsection{Objetivo}
-
 \begin{frame}{Objetivo}
   \begin{itemize}
   \item {
@@ -196,8 +191,6 @@
   }
   \end{itemize}
 \end{frame}
-
-\subsection{Métricas de avaliação}
 
 \begin{frame}{Métricas de avaliação}
   \begin{itemize}
@@ -589,6 +582,8 @@ $\underset{\bar{w}, \bar{\epsilon}, b}{min}\phi(\bar{w}, \bar{\epsilon},b)
     = \underset{\bar{w}, \bar{\epsilon}, b}{min}\frac{1}{2}\bar{w}\cdot\bar{w} + C\sum_{i=1}^l \epsilon_i
     = \frac{1}{2}\bar{w}^*\cdot\bar{w}^* + C\sum_{i=1}^l \epsilon_i^*
     =m^*$
+    
+    Na versão dual: $\alpha_i<C$
 \end{frame}
 
 \begin{frame}{Gradiente Ascendente}
@@ -876,6 +871,10 @@ Alguns parâmetros convergem mais rápidos que outros, para isso criamos um modo
     \codec{codigos/SequentialSvmTrain.txt}
 \end{frame}
 
+\begin{frame}{Treinamento Sequencial}
+    \codec{codigos/SequentialSvmTrain2.txt}
+\end{frame}
+
 \begin{frame}{Classificação Sequencial}
     \codec{codigos/SequentialSvmClassify.txt}
 \end{frame}
@@ -909,20 +908,368 @@ Porque o Algoritmo Kernel-Adatron é bastante paralelizável?
 \end{frame}
 
 \begin{frame}{Kernel-Adatron Paralelo}
-Método estocástico?
-\begin{itemize}
-    \item A única parte paralelizável é o kernel
-    \item Pouco trabalho na GPU
-    \item Muita transfererência entre o host e o device
-\end{itemize}
-Método não-estocástico
-\begin{itemize}
-    \item Cada $\alpha_i$ é calculado em uma thread separada
-    \item Maior parte do trabalho na GPU
-    \item Somente o cálculo da condição de parada fica no host
-\end{itemize}
+    Método estocástico?
+    \begin{itemize}
+        \item Só é possivel paralelizar o kernel
+        \item Pouco trabalho na GPU
+        \item Muita transferência entre host e device
+    \end{itemize}
+    Método não-estocástico
+    \begin{itemize}
+        \item Cada $\alpha_i$ é calculado em paralelo
+        \item Maior parte do algoritmo feito no device
+        \item Só a condição de parada é feita no host
+    \end{itemize}
 \end{frame}
 
+\begin{frame}{Dificuldades Técnicas}
+    \begin{itemize}
+        \item Muito trabalho para cada kernel
+        \item GPU demorava a responder
+        \item Windows desativava a GPU achando que estava travado
+        \item Timeout Detection and Recovery
+    \end{itemize}
+    Mudar configuração do windows ou resolver o problema pela aplicação?
+    \begin{itemize}
+        \item Trabalho dos kernels separado em lotes
+        \item Da tempo para a GPU responder o windows e executar operações básicas do sistema operacional
+        \item Mouse mais responsivo durante testes
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Kernel do Loop de Treinamento}
+    \codec{codigos/trainingKernelLoop.txt}
+\end{frame}
+
+\begin{frame}{Kernel do Fechamento de Treinamento}
+    \codec{codigos/trainingKernelFinishMultiple.txt}
+\end{frame}
+
+\begin{frame}{Kernel de Classificação}
+    \codec{codigos/classificationKernel.txt}
+\end{frame}
+
+\section{Avaliação}
+
+\begin{frame}{Avaliação}
+    Todos os experimentos foram realizados no sistema operacional Windows 10, em uma máquina com CPU Intel Core i7-4770 @ 3.4GHz. A GPU utilizada foi uma NVIDIA GeForce GTX 660 com 1152 Cores e 1.58GB de memória.
+\end{frame}
+
+\begin{frame}{Conjuntos de Dados}
+    Iris
+    \begin{itemize}
+        \item Distingue 3 tipos de iris, uma espécie de flor
+        \item Os atributos descrevem os tamanhos das pétalas e das sépalas
+        \item Cada exemplo possui 4 atributos
+        \item São 150 exemplos no conjunto
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Conjuntos de Dados}
+    Adult
+    \begin{itemize}
+        \item A classificação prevê se um individuo tem renda de mais ou menos que 50 mil dólares por ano.
+        \item Alguns dos atributos são idade, país de origem, etnia, estado civil e escolaridade.
+        \item Cada exemplo possui 119 atributos.
+        \item Conjunto de dados variando o número de amostras entre 1605 e 16100.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Conjuntos de Dados}
+    Web
+    \begin{itemize}
+        \item  Determina se uma página de web pertence a uma categoria.
+        \item Cada exemplo possui 300 atributos, a maioria binários representando a presença ou não de palavras chave.
+        \item Conjunto de dados variando o número de amostras entre 2477 e 17188.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Métricas de avaliação}
+    Avaliação da máquina de vetores suporte
+    \begin{itemize}
+        \item Porcentagem de acertos
+        \item Validação Cruzada
+    \end{itemize}
+    Avaliação da paralelização
+    \begin{itemize}
+        \item Comparar versão sequencial e paralela
+        \item Manter porcentagem de acertos
+        \item Aumentar velocidade
+        \item Speedup: $\frac{t_{sequencial}}{t_{paralelo}}$
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Avaliação da Máquina de Vetores Suporte}
+Permutação de todos os valores da tabela: 240 testes, 51 horas e e 55 minutos
+\begin{table}
+    \centering
+    \begin{tabular}{|c|c|} \hline
+        Parâmetro & Valores Utilizados \\ \hline
+        -sd & 0 \\ \hline
+        -f & 3 \\ \hline
+        -mi & 512 \\ \hline
+        -l & r \\ \hline
+        -p & 1e-2, 1e-4, 1e-8 \\ \hline
+        -st & 1, 1e-1, 1e-2, 1e-3 \\ \hline
+        -sm & s, m \\ \hline
+        -d & a1, w1\\ \hline
+        -svm & p, s\\ \hline
+        -t* & 32, 128, 512\\ \hline
+        -ua* & f, t \\ \hline
+    \end{tabular}
+\end{table}
+\end{frame}
+
+\begin{frame}{Avaliação da Máquina de Vetores Suporte}{Resultados Adult}
+\begin{table}
+    \footnotesize
+    \centering
+    \tabcolsep=0.11cm
+    \begin{tabular}{|c|c|c|c|c|c|c|c|} \hline
+		-svm & -p & -st & -sm & -t & -ua & Tempo Total & \% Acertos\\ \hline
+		s & 0.00000001 & 0.001 & s & 32 & t & 00:12:40.903 & 82.6791\\ \hline
+		s & 0.00000001 & 0.001 & s & 32 & f & 00:12:42.611 & 82.6791\\ \hline
+		s & 0.0001 & 0.001 & s & 32 & f & 00:12:53.047 & 82.6791\\ \hline
+		s & 0.0001 & 0.001 & s & 32 & t & 00:12:54.204 & 82.6791\\ \hline
+		p & 0.01 & 0.01 & m & 128 & f & 00:00:00.831 & 82.3676\\ \hline
+		p & 0.01 & 0.01 & m & 32 & f & 00:00:00.844 & 82.3676\\ \hline
+		p & 0.01 & 0.01 & s & 128 & f & 00:00:00.844 & 82.3676\\ \hline
+		p & 0.01 & 0.01 & s & 32 & f & 00:00:00.895 & 82.3676\\ \hline
+		p & 0.01 & 0.01 & s & 512 & f & 00:00:00.946 & 82.3676\\ \hline
+		p & 0.01 & 0.01 & m & 512 & f & 00:00:00.965 & 82.3676\\ \hline
+		s & 0.01 & 0.01 & m & 32 & f & 00:00:02.283 & 82.3676\\ \hline
+		s & 0.01 & 0.01 & s & 32 & t & 00:00:02.300 & 82.3676\\ \hline
+		s & 0.01 & 0.01 & m & 32 & t & 00:00:02.302 & 82.3676\\ \hline
+		s & 0.01 & 0.01 & s & 32 & f & 00:00:02.310 & 82.3676\\ \hline
+		p & 0.01 & 0.001 & m & 128 & f & 00:00:00.827 & 82.243\\ \hline
+		p & 0.01 & 0.001 & s & 128 & f & 00:00:00.830 & 82.243\\ \hline
+		p & 0.01 & 0.001 & m & 32 & f & 00:00:00.832 & 82.243\\ \hline
+		p & 0.01 & 0.001 & s & 32 & f & 00:00:00.835 & 82.243\\ \hline
+		p & 0.01 & 0.001 & m & 512 & f & 00:00:00.947 & 82.243\\ \hline
+		p & 0.01 & 0.001 & s & 512 & f & 00:00:00.954 & 82.243\\ \hline
+		s & 0.01 & 0.001 & m & 32 & f & 00:00:02.296 & 82.243\\ \hline
+		s & 0.01 & 0.001 & s & 32 & t & 00:00:02.298 & 82.243\\ \hline
+		s & 0.01 & 0.001 & s & 32 & f & 00:00:02.307 & 82.243\\ \hline
+		s & 0.01 & 0.001 & m & 32 & t & 00:00:02.570 & 82.243\\ \hline
+		p & 0.00000001 & 0.001 & s & 128 & f & 00:03:25.064 & 82.1807\\ \hline
+		p & 0.0001 & 0.001 & s & 32 & f & 00:03:27.416 & 82.1807\\ \hline
+		p & 0.00000001 & 0.001 & s & 32 & f & 00:03:27.798 & 82.1807\\ \hline
+		p & 0.0001 & 0.001 & s & 128 & f & 00:03:51.963 & 82.1807\\ \hline
+		p & 0.00000001 & 0.001 & s & 512 & f & 00:04:06.970 & 82.1807\\ \hline
+		p & 0.0001 & 0.001 & s & 512 & f & 00:06:15.114 & 82.1807\\ \hline
+    \end{tabular}
+\end{table}
+\end{frame}
+
+\begin{frame}{Avaliação da Máquina de Vetores Suporte}{Resultados Web}
+
+\begin{table}
+    \footnotesize
+    \centering
+    \tabcolsep=0.11cm
+    \begin{tabular}{|c|c|c|c|c|c|c|c|} \hline
+		-svm & -p & -st & -sm & -t & -ua & Tempo Total & \% Acertos\\ \hline
+		p & 0.01 & 0.001 & s & 128 & f & 00:00:02.796 & 97.8196\\ \hline
+		p & 0.01 & 0.001 & m & 128 & f & 00:00:02.806 & 97.8196\\ \hline
+		p & 0.01 & 0.001 & s & 32 & f & 00:00:02.835 & 97.8196\\ \hline
+		p & 0.01 & 0.001 & m & 32 & f & 00:00:02.837 & 97.8196\\ \hline
+		p & 0.01 & 0.001 & m & 512 & f & 00:00:03.165 & 97.8196\\ \hline
+		p & 0.01 & 0.001 & s & 512 & f & 00:00:03.167 & 97.8196\\ \hline
+		s & 0.01 & 0.001 & m & 32 & f & 00:00:12.883 & 97.8196\\ \hline
+		s & 0.01 & 0.001 & s & 32 & f & 00:00:12.884 & 97.8196\\ \hline
+		s & 0.01 & 0.001 & m & 32 & t & 00:00:12.896 & 97.8196\\ \hline
+		s & 0.01 & 0.001 & s & 32 & t & 00:00:12.904 & 97.8196\\ \hline
+		p & 0.00000001 & 0.001 & m & 32 & f & 00:16:10.843 & 97.8196\\ \hline
+		p & 0.00000001 & 0.001 & s & 32 & f & 00:16:27.700 & 97.8196\\ \hline
+		p & 0.00000001 & 0.001 & s & 512 & f & 00:19:55.060 & 97.8196\\ \hline
+		p & 0.00000001 & 0.001 & m & 128 & f & 00:20:26.884 & 97.8196\\ \hline
+		p & 0.00000001 & 0.001 & s & 128 & f & 00:20:41.632 & 97.8196\\ \hline
+		p & 0.0001 & 0.001 & m & 32 & f & 00:22:09.919 & 97.8196\\ \hline
+		p & 0.00000001 & 0.001 & m & 512 & f & 00:23:42.591 & 97.8196\\ \hline
+		p & 0.0001 & 0.001 & s & 32 & f & 00:24:48.987 & 97.8196\\ \hline
+		p & 0.0001 & 0.001 & m & 128 & f & 00:27:54.464 & 97.8196\\ \hline
+		p & 0.0001 & 0.001 & m & 512 & f & 00:30:29.871 & 97.8196\\ \hline
+		p & 0.0001 & 0.001 & s & 512 & f & 00:31:46.888 & 97.8196\\ \hline
+		p & 0.0001 & 0.001 & s & 128 & f & 00:32:35.167 & 97.8196\\ \hline
+		s & 0.00000001 & 0.001 & s & 32 & f & 01:13:43.132 & 97.8196\\ \hline
+		s & 0.00000001 & 0.001 & m & 32 & f & 01:14:02.724 & 97.8196\\ \hline
+		s & 0.00000001 & 0.001 & m & 32 & t & 01:14:05.295 & 97.8196\\ \hline
+		s & 0.00000001 & 0.001 & s & 32 & t & 01:14:06.902 & 97.8196\\ \hline
+		s & 0.0001 & 0.001 & m & 32 & f & 01:14:38.329 & 97.8196\\ \hline
+		s & 0.0001 & 0.001 & s & 32 & f & 01:14:41.964 & 97.8196\\ \hline
+		s & 0.0001 & 0.001 & s & 32 & t & 01:15:24.936 & 97.8196\\ \hline
+		s & 0.0001 & 0.001 & m & 32 & t & 01:24:16.286 & 97.8196\\ \hline
+    \end{tabular}
+\end{table}
+\end{frame}
+
+\begin{frame}{Resumo dos Resultados}
+    \begin{itemize}
+        \item O número de threads por bloco não fez diferença na porcentagem de acertos.
+        \item SingleStep gerou os melhores resultados
+        \item Modo estocástico e o não-estocástico tiveram porcentagem de acertos parecidos
+        \item Bons resultados com valores de precisão de parada muito pequenos
+        \item Resultados com precisão maior quase tão bons quanto
+        \item Desempenho ruim para passos iniciais grandes
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Avaliação da Paralelização}
+\begin{table}
+    \centering
+    \begin{tabular}{|c|c|} \hline
+        Parâmetro & Valores Utilizados \\ \hline
+        -sd & 0 \\ \hline
+        -f & 10 \\ \hline
+        -mi & 512 \\ \hline
+        -l & r \\ \hline
+        -p & 1e-2 \\ \hline
+        -st & 1e-2 \\ \hline
+        -sm & s \\ \hline
+        -d & a1, a2, a3, a4, a5, a6, w1, w2, w3, w4, w5, w6\\ \hline
+        -svm & p, s\\ \hline
+        -t* & 128 \\ \hline
+        -ua* & f \\ \hline
+    \end{tabular}
+\end{table}
+\end{frame}
+
+\begin{frame}{Avaliação da Paralelização}{Resultados Adult}
+\begin{table}
+    \small
+    \centering
+    \begin{tabular}{|c|c|c|c|c|c|} \hline
+		Conjunto & Exemplos & T. Par. & T. Seq. & Speedup & \% Acertos\\ \hline
+		\em{Adult} & 1605 & 0:00:02.366 & 0:00:10.417 & 4.402789291 & 81.6871\\ \hline
+		\em{Adult} & 2265 & 0:00:03.536 & 0:00:20.414 & 5.773189915 & 80.4889\\ \hline
+		\em{Adult} & 3185 & 0:00:06.673 & 0:00:41.207 & 6.175183464 & 82.0412\\ \hline
+		\em{Adult} & 4781 & 0:00:22.094 & 0:01:33.036 & 4.210916972 & 81.9498\\ \hline
+		\em{Adult} & 6414 & 0:00:47.092 & 0:02:57.579 & 3.770895268 & 81.7744\\ \hline
+		\em{Adult} & 11220 & 0:02:31.490 & 0:08:31.127 & 3.373998282 & 82.5758\\ \hline
+		\em{Adult} & 16100 & 0:05:30.444 & 0:19:37.240 & 3.562600621 & 82.6584\\ \hline
+    \end{tabular}
+\end{table}
+\end{frame}
+
+\begin{frame}{Avaliação da Paralelização}{Gráfico Adult}
+\begin{figure}
+  \centering
+  \includegraphics[width=1\textwidth]{GraficoAdult.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Avaliação da Paralelização}{Resultados Web}
+\begin{table}
+    \caption{Segunda Rodada de Testes para conjunto \emph{Web}}
+    \label{tab:bestResults2w}
+    \small
+    \centering
+    \begin{tabular}{|c|c|c|c|c|c|} \hline
+		Conjunto & Exemplos & T. Par. & T. Seq. & Speedup & \% Acertos\\ \hline
+		\em{Web} & 2477 & 0:00:09.273 & 0:00:59.587 & 6.425860086 & 98.0617\\ \hline
+		\em{Web} & 3470 & 0:00:24.333 & 0:01:56.124 & 4.772284565 & 88.5303\\ \hline
+		\em{Web} & 4912 & 0:01:04.863 & 0:03:57.542 & 3.66221113 & 89.4944\\ \hline
+		\em{Web} & 7366 & 0:03:36.372 & 0:08:44.351 & 2.423377332 & 89.7095\\ \hline
+		\em{Web} & 9888 & 0:06:10.982 & 0:15:41.204 & 2.537061097 & 89.7956\\ \hline
+		\em{Web} & 17188 & 0:19:50.535 & 0:47:21.126 & 2.38642795 & 90.3246\\ \hline
+    \end{tabular}
+\end{table}
+\end{frame}
+
+\begin{frame}{Avaliação da Paralelização}{Gráfico Web}
+\begin{figure}
+  \centering
+  \includegraphics[width=1\textwidth]{GraficoWeb.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Comparação com LIBSVM}
+    \begin{table}
+    \small
+    \centering
+    \begin{tabular}{|c|c|c|c|} \hline
+        Conjunto & Exemplos & Tempo & \% Acerto \\ \hline
+        \em{Adult} & 1605 & 00:00:01:52 & 83.0530 \\ \hline
+        \em{Adult} & 2265 &  00:00:02:57 & 81.8102 \\ \hline
+        \em{Adult} & 3185 &  00:00:04:41 & 83.1397 \\ \hline
+        \em{Adult} & 4781 & 00:00:09:38 & 83.4553 \\ \hline
+        \em{Adult} & 6414 & 00:00:16:45 & 83.8011 \\ \hline
+        \em{Adult} & 11220 & 00:00:51:58 & 83.8146 \\ \hline
+        \em{Adult} & 16100 & 00:01:49:48 & 84.0497 \\ \hline
+        \em{Web} & 2477 & 00:00:00:89 & 97.0933 \\ \hline
+        \em{Web} & 3470 & 00:00:01:40 & 96.9164 \\ \hline
+        \em{Web} & 4912 & 00:00:02:27 & 97.0888 \\ \hline
+        \em{Web} & 7366 & 00:00:04:33 & 97.0676 \\ \hline
+        \em{Web} & 9888 & 00:00:07:13 & 97.1582 \\ \hline
+        \em{Web} & 17188 & 00:00:20:39 & 97.0386 \\ \hline
+    \end{tabular}
+\end{table}
+\end{frame}
+
+\begin{frame}{Conclusão}
+    \begin{itemize}
+        \item Exploramos a capacidade de processamento paralelo das GPUs
+        \item Reduzimos o tempo de execução do algoritmo Kernel-Adatron
+        \item Kernel-Adatron estocástico e não-estocástico alcançaram a mesma porcentagem de acertos
+        \item Compararando nossa versão com o LIBSVM: porcentagens de acertos próximas
+        \item Tempo de execução muito inferior
+    \end{itemize}
+    Comparando nossa versão paralela e sequencial:
+    \begin{itemize}
+        \item Porcentagem de acertos variando de 1\% a 0\%
+        \item Speedup de duas até seis vezes melhor.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Trabalhos Futuros}
+    \begin{itemize}
+        \item Mais experimentos
+    \end{itemize}
+    Máquina de Vetores Suporte
+    \begin{itemize}
+        \item Multi-Classe
+        \item Regressão
+    \end{itemize}
+    Paralelização
+    \begin{itemize}
+        \item Float em vez de double
+        \item Melhor aproveitamento da memória compartilhada
+        \item Somatório na GPU
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Obrigado}
+\centering
+    Obrigado :)
+\end{frame}
+
+\begin{frame}[allowframebreaks]{Bibliografia}
+\begin{itemize}
+    \item Asuncion and Newman, 2007 Asuncion, A. and Newman, D. (2007). UCI machine learning repository.
+    \item Athanasopoulos et al., 2011 Athanasopoulos, A., Dimou, A., Mezaris, V., and Kompatsiaris, I. (2011). GPU acceleration for support vector machines. In 12th International Workshop on Image Analysis for Multimedia Interactive Services .
+    \item Campbell and Cristianini, 1998 Campbell, C. and Cristianini, N. (1998). Simple learning algorithms for training support vector machines.
+    \item Carpenter, 2009 Carpenter, A. (2009). Cusvm: A CUDA implementation of support vector classification and regression.
+    \item Catanzaro et al., 2008 Catanzaro, B., Sundaram, N., and Kurt, K. (2008). Fast support vector machine training and classification on graphics processors. In 25th
+International Conference on Machine Learning, pages 104–111.
+\end{itemize}
+\begin{itemize}
+    \item Chang and Lin, 2011 Chang, C.-C. and Lin, C.-J. (2011). LIBSVM: A library for support vector machines. ACM Transactions on Intelligent Systems and Technology, 2:27:1–27:27. Software available at http://www.csie.ntu.edu.tw/~cjlin/libsvm.
+    \item Cortes and Vapnik, 1995 Cortes, C. and Vapnik, V. (1995). Support-vector
+networks. Machine learning, 20(3):273–297.
+    \item Defilippo, 2004 Defilippo, S. B. (2004). Máquinas de vetores suportes. Technical
+report, UFJF - Universidade Federal de Juiz de Fora. Monografia de final de curso
+de Graduação em Ciência da Computação.
+REFERÊNCIAS 57
+    \item Hamel, 2011 Hamel, L. H. (2011). Knowledge discovery with support vector machines, volume 3. John Wiley \& Sons.
+\end{itemize}
+\begin{itemize}
+    \item Harris et al., 2007 Harris, M. et al. (2007). Optimizing parallel reduction in
+CUDA. NVIDIA Developer Technology, 2(4).
+    \item NVIDIA Corporation, 2007 NVIDIA Corporation (2007). NVIDIA CUDA Compute Unified Device Architecture Programming Guide. NVIDIA Corporation.
+    \item Osuna et al., 1997 Osuna, E., Freund, R., and Girosi, F. (1997). An improved training algorithm for support vector machines. In Neural Networks for Signal Processing 1997 VII. Proceedings of the 1997 IEEE Workshop, pages 276–285. IEEE.
+    \item Platt, 1998 Platt, J. C. (1998). Sequential minimal optimization: A fast algorithm for training support vector machines. Technical report, ADVANCES IN KERNEL METHODS - SUPPORT VECTOR LEARNING.
+\end{itemize}
+\end{frame}
 
 \end{document}
 
